@@ -6,6 +6,7 @@ const teamSchema = new mongoose.Schema(
     description: { type: String, required: true },
     maxMembers: { type: Number, required: true, min: 1 },
     skillsNeeded: { type: [String], default: [] },
+    isRecruiting: { type: Boolean, default: true },
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   },

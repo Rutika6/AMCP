@@ -13,6 +13,12 @@ export async function applyToTeam(req, res) {
   if (String(team.ownerId) === String(req.user._id)) {
     return res.status(400).json({ message: 'You cannot apply to your own team' });
   }
+  if (team.isRecruiting === false) {
+    return res.status(400).json({ message: 'This team is not currently accepting applications' });
+  }
+  if (team.members.length >= team.maxMembers) {
+    return res.status(400).json({ message: 'This team has no vacancies' });
+  }
 
   const existing = await JoinRequest.findOne({
     teamId,
@@ -74,6 +80,12 @@ export async function respondToRequest(req, res) {
   const team = await Team.findById(request.teamId);
   if (!team || String(team.ownerId) !== String(req.user._id)) {
     return res.status(403).json({ message: 'Only the team owner can respond to this request' });
+  }
+
+  if (status === 'ACCEPTED' && !team.members.some((m) => String(m) === String(request.applicantId))) {
+    if (team.members.length >= team.maxMembers) {
+      return res.status(400).json({ message: 'This team has no vacancies' });
+    }
   }
 
   request.status = status;

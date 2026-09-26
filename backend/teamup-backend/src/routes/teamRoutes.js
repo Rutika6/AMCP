@@ -7,6 +7,8 @@ import {
   getTeamById,
   getMyTeams,
   searchTeams,
+  getTeamMembers,
+  removeTeamMember,
 } from '../controllers/teamController.js';
 import { applyToTeam, getRequestsForTeam } from '../controllers/requestController.js';
 
@@ -19,6 +21,8 @@ router.get('/mine', getMyTeams);
 router.get('/search', searchTeams);
 
 router.post('/', createTeam);
+router.get('/:teamId/members', getTeamMembers);
+router.delete('/:teamId/members/:memberId', removeTeamMember);
 router.get('/:teamId', getTeamById);
 router.put('/:teamId', updateTeam);
 router.delete('/:teamId', deleteTeam);

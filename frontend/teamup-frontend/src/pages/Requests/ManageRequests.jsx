@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import MainLayout from '../../layouts/MainLayout';
 import Button from '../../components/common/Button';
@@ -13,15 +13,26 @@ export default function ManageRequests() {
     () => requestService.getRequestsForTeam(teamId),
     [teamId]
   );
+  const [actionError, setActionError] = useState('');
+  const [respondingId, setRespondingId] = useState('');
 
   const respond = async (requestId, status) => {
-    await requestService.respondToRequest(requestId, status);
-    refetch();
+    setActionError('');
+    setRespondingId(requestId);
+    try {
+      await requestService.respondToRequest(requestId, status);
+      refetch();
+    } catch (err) {
+      setActionError(err.response?.data?.message || 'Unable to update this request.');
+    } finally {
+      setRespondingId('');
+    }
   };
 
   return (
     <MainLayout>
       <h1>Join Requests</h1>
+      {actionError && <p className="error-text">{actionError}</p>}
       {loading ? (
         <Loader />
       ) : requests?.length ? (
@@ -31,8 +42,12 @@ export default function ManageRequests() {
             <p style={{ color: 'var(--color-text-muted)' }}>{req.message}</p>
             {req.status === REQUEST_STATUS.PENDING ? (
               <div style={{ display: 'flex', gap: 8 }}>
-                <Button onClick={() => respond(req.id, REQUEST_STATUS.ACCEPTED)}>Accept</Button>
-                <Button variant="secondary" onClick={() => respond(req.id, REQUEST_STATUS.REJECTED)}>Reject</Button>
+                <Button disabled={respondingId === req.id} onClick={() => respond(req.id, REQUEST_STATUS.ACCEPTED)}>
+                  {respondingId === req.id ? 'Saving...' : 'Accept'}
+                </Button>
+                <Button variant="secondary" disabled={respondingId === req.id} onClick={() => respond(req.id, REQUEST_STATUS.REJECTED)}>
+                  Reject
+                </Button>
               </div>
             ) : (
               <p>Status: {req.status}</p>

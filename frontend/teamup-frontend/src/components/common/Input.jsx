@@ -8,6 +8,7 @@ export default function Input({
   onChange,
   error,
   placeholder,
+  min,
 }) {
   return (
     <div className="form-group">
@@ -19,6 +20,7 @@ export default function Input({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
+        min={min}
         style={{
           width: '100%',
           borderColor: error ? 'var(--color-danger)' : undefined,

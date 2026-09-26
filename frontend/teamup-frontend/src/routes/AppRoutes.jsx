@@ -6,6 +6,7 @@ import ProtectedRoute from '../components/common/ProtectedRoute';
 import Register from '../pages/Auth/Register';
 import Login from '../pages/Auth/Login';
 import ForgotPassword from '../pages/Auth/ForgotPassword';
+import ResetPassword from '../pages/Auth/ResetPassword';
 
 import Dashboard from '../pages/Dashboard';
 
@@ -15,6 +16,8 @@ import EditProfile from '../pages/Profile/EditProfile';
 import CreateTeam from '../pages/Team/CreateTeam';
 import EditTeam from '../pages/Team/EditTeam';
 import TeamDetails from '../pages/Team/TeamDetails';
+import ManageTeamMembers from '../pages/Team/ManageTeamMembers';
+import ManageVacancies from '../pages/Team/ManageVacancies';
 
 import SearchTeams from '../pages/Search/SearchTeams';
 
@@ -30,6 +33,7 @@ export default function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Protected routes */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -42,6 +46,8 @@ export default function AppRoutes() {
       <Route path="/teams/my-applications" element={<ProtectedRoute><ApplyToTeam /></ProtectedRoute>} />
       <Route path="/teams/:teamId" element={<ProtectedRoute><TeamDetails /></ProtectedRoute>} />
       <Route path="/teams/:teamId/edit" element={<ProtectedRoute><EditTeam /></ProtectedRoute>} />
+      <Route path="/teams/:teamId/members" element={<ProtectedRoute><ManageTeamMembers /></ProtectedRoute>} />
+      <Route path="/teams/:teamId/vacancies" element={<ProtectedRoute><ManageVacancies /></ProtectedRoute>} />
       <Route path="/teams/:teamId/requests" element={<ProtectedRoute><ManageRequests /></ProtectedRoute>} />
 
       <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />

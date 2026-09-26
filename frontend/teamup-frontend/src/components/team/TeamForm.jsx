@@ -4,7 +4,7 @@ import Button from '../common/Button';
 import { useForm } from '../../hooks/useForm';
 import { validateTeamForm } from '../../utils/validators';
 
-export default function TeamForm({ initialValues, onSubmit, submitLabel = 'Save Team' }) {
+export default function TeamForm({ initialValues, onSubmit, submitLabel = 'Save Team', submitting = false, onCancel }) {
   const { values, errors, setErrors, handleChange } = useForm(
     initialValues || { name: '', description: '', maxMembers: 4, skillsNeeded: '' }
   );
@@ -46,6 +46,7 @@ export default function TeamForm({ initialValues, onSubmit, submitLabel = 'Save 
         label="Max Members"
         name="maxMembers"
         type="number"
+        min="1"
         value={values.maxMembers}
         onChange={handleChange}
         error={errors.maxMembers}
@@ -56,7 +57,10 @@ export default function TeamForm({ initialValues, onSubmit, submitLabel = 'Save 
         value={values.skillsNeeded}
         onChange={handleChange}
       />
-      <Button type="submit">{submitLabel}</Button>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Button type="submit" disabled={submitting}>{submitting ? 'Saving...' : submitLabel}</Button>
+        {onCancel && <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>Cancel</Button>}
+      </div>
     </form>
   );
 }
