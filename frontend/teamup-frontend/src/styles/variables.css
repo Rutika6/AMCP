@@ -1,0 +1,34 @@
+:root {
+  /* Base gradient backdrop */
+  --bg-1: #120a2e;
+  --bg-2: #3b1671;
+  --bg-3: #0d6a75;
+
+  /* Accent gradient (violet -> cyan) */
+  --accent-1: #8b5cf6;
+  --accent-2: #22d3ee;
+  --color-primary: var(--accent-1);
+  --color-primary-dark: #7c3aed;
+  --color-secondary: #34d399;
+  --color-danger: #fb7185;
+
+  /* Glass surfaces */
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-bg-strong: rgba(255, 255, 255, 0.14);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-shadow: 0 8px 32px rgba(18, 10, 46, 0.45);
+  --color-surface: var(--glass-bg);
+
+  /* Text */
+  --color-text: #f1f0fa;
+  --color-text-muted: #b8b3d6;
+  --color-border: var(--glass-border);
+
+  --radius: 14px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+
+  --font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
+  --font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
