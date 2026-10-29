@@ -34,6 +34,23 @@ pipeline {
             }
         }
 
+        stage('Locate Docker CLI') {
+            steps {
+                script {
+                    def dockerDir = bat(returnStdout: true, script: '''
+                        @echo off
+                        powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "$candidates = New-Object 'System.Collections.Generic.List[string]'; $onPath = Get-Command docker.exe -ErrorAction SilentlyContinue; if ($onPath) { $candidates.Add($onPath.Source) }; if ($env:DOCKER_CLI_DIR) { $candidates.Add((Join-Path $env:DOCKER_CLI_DIR 'docker.exe')) }; if ($env:ProgramFiles) { $candidates.Add((Join-Path $env:ProgramFiles 'Docker\Docker\resources\bin\docker.exe')) }; if ($env:LOCALAPPDATA) { $candidates.Add((Join-Path $env:LOCALAPPDATA 'Programs\DockerDesktop\resources\bin\docker.exe')) }; $usersRoot = Join-Path $env:SystemDrive 'Users'; $profiles = Get-ChildItem -LiteralPath $usersRoot -Directory -ErrorAction SilentlyContinue; foreach ($profile in $profiles) { $candidates.Add((Join-Path $profile.FullName 'AppData\Local\Programs\DockerDesktop\resources\bin\docker.exe')) }; $dockerExe = $candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1; if (-not $dockerExe) { Write-Error 'Docker CLI was not found. Set DOCKER_CLI_DIR for the Jenkins service or add Docker Desktop resources\bin to its PATH.'; exit 1 }; Split-Path -Parent $dockerExe
+                    ''').trim()
+
+                    env.PATH = "${dockerDir};${env.PATH}"
+                    echo "Using Docker CLI directory: ${dockerDir}"
+                    bat 'docker --version'
+                    bat 'docker compose version'
+                    env.TEAMUP_DOCKER_READY = 'true'
+                }
+            }
+        }
+
         stage('Validate Docker Compose') {
             steps {
                 bat 'docker compose config --quiet'
@@ -49,11 +66,15 @@ pipeline {
 
     post {
         always {
-            echo 'Cleanup: removing any containers and networks for this CI Compose project.'
             script {
-                def cleanupStatus = bat(returnStatus: true, script: 'docker compose down --remove-orphans')
-                if (cleanupStatus != 0) {
-                    echo "Compose cleanup returned ${cleanupStatus}; no containers are started by the build stage."
+                if (env.TEAMUP_DOCKER_READY == 'true') {
+                    echo 'Cleanup: removing any containers and networks for this CI Compose project.'
+                    def cleanupStatus = bat(returnStatus: true, script: 'docker compose down --remove-orphans')
+                    if (cleanupStatus != 0) {
+                        echo "Compose cleanup returned ${cleanupStatus}; no containers are started by the build stage."
+                    }
+                } else {
+                    echo 'Cleanup skipped because the Docker CLI could not be resolved.'
                 }
             }
         }
