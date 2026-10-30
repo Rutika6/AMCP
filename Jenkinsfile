@@ -45,21 +45,34 @@ pipeline {
                     env.PATH = "${dockerDir};${env.PATH}"
                     echo "Using Docker CLI directory: ${dockerDir}"
                     bat 'docker --version'
-                    bat 'docker compose version'
-                    env.TEAMUP_DOCKER_READY = 'true'
+
+                    def dockerComposeStatus = bat(returnStatus: true, script: 'docker compose version')
+                    if (dockerComposeStatus == 0) {
+                        env.TEAMUP_COMPOSE_COMMAND = 'docker compose'
+                    } else {
+                        echo 'Docker Compose is not available as a Docker CLI plugin. Searching standalone and plugin locations.'
+                        def composeExe = bat(returnStdout: true, script: '''
+                            @echo off
+                            powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "$candidates = @(); $checked = @(); $onPath = Get-Command docker-compose.exe -ErrorAction SilentlyContinue; if ($onPath) { $candidates += $onPath.Source } else { $checked += 'PATH lookup for docker-compose.exe' }; $docker = Get-Command docker.exe -ErrorAction SilentlyContinue; if ($docker) { $dockerBin = Split-Path -Parent $docker.Source; $dockerResources = Split-Path -Parent $dockerBin; $candidates += (Join-Path $dockerResources 'cli-plugins/docker-compose.exe'); $candidates += (Join-Path $dockerBin 'cli-plugins/docker-compose.exe'); $checked += (Join-Path $dockerResources 'cli-plugins/docker-compose.exe'); $checked += (Join-Path $dockerBin 'cli-plugins/docker-compose.exe') }; if ($env:DOCKER_CLI_DIR) { $candidates += (Join-Path $env:DOCKER_CLI_DIR 'docker-compose.exe'); $candidates += (Join-Path $env:DOCKER_CLI_DIR 'cli-plugins/docker-compose.exe'); $checked += (Join-Path $env:DOCKER_CLI_DIR 'docker-compose.exe'); $checked += (Join-Path $env:DOCKER_CLI_DIR 'cli-plugins/docker-compose.exe') }; if ($env:ProgramFiles) { $candidates += (Join-Path $env:ProgramFiles 'Docker/Docker/resources/cli-plugins/docker-compose.exe'); $candidates += (Join-Path $env:ProgramFiles 'Docker/Docker/resources/bin/docker-compose.exe'); $candidates += (Join-Path $env:ProgramFiles 'Docker/Docker/cli-plugins/docker-compose.exe'); $checked += (Join-Path $env:ProgramFiles 'Docker/Docker/resources/cli-plugins/docker-compose.exe'); $checked += (Join-Path $env:ProgramFiles 'Docker/Docker/resources/bin/docker-compose.exe'); $checked += (Join-Path $env:ProgramFiles 'Docker/Docker/cli-plugins/docker-compose.exe') }; if ($env:LOCALAPPDATA) { $candidates += (Join-Path $env:LOCALAPPDATA 'Programs/DockerDesktop/resources/cli-plugins/docker-compose.exe'); $candidates += (Join-Path $env:LOCALAPPDATA 'Programs/DockerDesktop/resources/bin/docker-compose.exe'); $checked += (Join-Path $env:LOCALAPPDATA 'Programs/DockerDesktop/resources/cli-plugins/docker-compose.exe'); $checked += (Join-Path $env:LOCALAPPDATA 'Programs/DockerDesktop/resources/bin/docker-compose.exe') }; if ($env:ProgramData) { $candidates += (Join-Path $env:ProgramData 'DockerDesktop/version-bin/docker-compose.exe'); $checked += (Join-Path $env:ProgramData 'DockerDesktop/version-bin/docker-compose.exe') }; if ($env:USERPROFILE) { $candidates += (Join-Path $env:USERPROFILE '.docker/cli-plugins/docker-compose.exe'); $checked += (Join-Path $env:USERPROFILE '.docker/cli-plugins/docker-compose.exe') }; $usersRoot = Join-Path $env:SystemDrive 'Users'; $profiles = Get-ChildItem -LiteralPath $usersRoot -Directory -ErrorAction SilentlyContinue; foreach ($profile in $profiles) { $profilePlugin = Join-Path $profile.FullName '.docker/cli-plugins/docker-compose.exe'; $candidates += $profilePlugin; $checked += $profilePlugin }; $composeExe = $candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1; if (-not $composeExe) { Write-Error ('Docker Compose was not found. Checked: ' + ($checked -join '; ')); exit 1 }; $composeExe"
+                        ''').trim()
+                        env.TEAMUP_COMPOSE_COMMAND = '"' + composeExe + '"'
+                    }
+
+                    bat '%TEAMUP_COMPOSE_COMMAND% version'
+                    env.TEAMUP_COMPOSE_READY = 'true'
                 }
             }
         }
 
         stage('Validate Docker Compose') {
             steps {
-                bat 'docker compose config --quiet'
+                bat '%TEAMUP_COMPOSE_COMMAND% config --quiet'
             }
         }
 
         stage('Build Docker Images') {
             steps {
-                bat 'docker compose build'
+                bat '%TEAMUP_COMPOSE_COMMAND% build'
             }
         }
     }
@@ -67,14 +80,14 @@ pipeline {
     post {
         always {
             script {
-                if (env.TEAMUP_DOCKER_READY == 'true') {
+                if (env.TEAMUP_COMPOSE_READY == 'true') {
                     echo 'Cleanup: removing any containers and networks for this CI Compose project.'
-                    def cleanupStatus = bat(returnStatus: true, script: 'docker compose down --remove-orphans')
+                    def cleanupStatus = bat(returnStatus: true, script: '%TEAMUP_COMPOSE_COMMAND% down --remove-orphans')
                     if (cleanupStatus != 0) {
                         echo "Compose cleanup returned ${cleanupStatus}; no containers are started by the build stage."
                     }
                 } else {
-                    echo 'Cleanup skipped because the Docker CLI could not be resolved.'
+                    echo 'Cleanup skipped because a Docker Compose command could not be resolved.'
                 }
             }
         }
