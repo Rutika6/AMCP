@@ -3,13 +3,14 @@ import { useParams } from 'react-router-dom';
 import MainLayout from '../../layouts/MainLayout';
 import Button from '../../components/common/Button';
 import Loader from '../../components/common/Loader';
+import ErrorState from '../../components/common/ErrorState';
 import { useFetch } from '../../hooks/useFetch';
 import { requestService } from '../../services/requestService';
 import { REQUEST_STATUS } from '../../utils/constants';
 
 export default function ManageRequests() {
   const { teamId } = useParams();
-  const { data: requests, loading, refetch } = useFetch(
+  const { data: requests, loading, error, refetch } = useFetch(
     () => requestService.getRequestsForTeam(teamId),
     [teamId]
   );
@@ -35,6 +36,8 @@ export default function ManageRequests() {
       {actionError && <p className="error-text">{actionError}</p>}
       {loading ? (
         <Loader />
+      ) : error ? (
+        <ErrorState message={error.response?.status === 403 ? 'Only the team owner can review requests.' : 'Unable to load join requests.'} onRetry={refetch} />
       ) : requests?.length ? (
         requests.map((req) => (
           <div key={req.id} className="card" style={{ marginBottom: 10 }}>

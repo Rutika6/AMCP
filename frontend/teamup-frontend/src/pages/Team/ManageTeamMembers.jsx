@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import MainLayout from '../../layouts/MainLayout';
 import Button from '../../components/common/Button';
 import Loader from '../../components/common/Loader';
+import ErrorState from '../../components/common/ErrorState';
 import { useFetch } from '../../hooks/useFetch';
 import { teamService } from '../../services/teamService';
 
@@ -35,7 +36,7 @@ export default function ManageTeamMembers() {
       <p style={{ color: 'var(--color-text-muted)' }}>Remove a member to open a vacancy on the team.</p>
       {actionError && <p className="error-text">{actionError}</p>}
       {loading ? <Loader /> : error ? (
-        <p className="error-text">You do not have permission to manage these members.</p>
+        <ErrorState message={error.response?.status === 403 ? 'Only the team owner can manage members.' : 'Unable to load team members.'} onRetry={refetch} />
       ) : members?.length ? members.map((member) => (
         <div key={member.id} className="card" style={{ marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>

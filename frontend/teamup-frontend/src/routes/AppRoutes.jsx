@@ -9,6 +9,8 @@ import ForgotPassword from '../pages/Auth/ForgotPassword';
 import ResetPassword from '../pages/Auth/ResetPassword';
 
 import Dashboard from '../pages/Dashboard';
+import MyTeams from '../pages/Team/MyTeams';
+import ProjectsPage from '../pages/ProjectsPage';
 
 import MyProfile from '../pages/Profile/MyProfile';
 import EditProfile from '../pages/Profile/EditProfile';
@@ -37,6 +39,9 @@ export default function AppRoutes() {
 
       {/* Protected routes */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/teams/mine" element={<ProtectedRoute><MyTeams /></ProtectedRoute>} />
+      <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
 
       <Route path="/profile" element={<ProtectedRoute><MyProfile /></ProtectedRoute>} />
       <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />

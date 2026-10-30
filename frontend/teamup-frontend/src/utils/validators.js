@@ -15,7 +15,7 @@ export function validateTeamForm(team) {
   const errors = {};
   if (!isNotEmpty(team.name)) errors.name = 'Team name cannot be empty';
   if (!isNotEmpty(team.description)) errors.description = 'Description is required';
-  if (!team.maxMembers || team.maxMembers < 1) errors.maxMembers = 'Team must allow at least 1 member';
+  if (!Number.isInteger(Number(team.maxMembers)) || Number(team.maxMembers) < 1) errors.maxMembers = 'Enter a whole number of at least 1';
   return errors;
 }
 

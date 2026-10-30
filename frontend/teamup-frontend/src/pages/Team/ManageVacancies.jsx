@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import MainLayout from '../../layouts/MainLayout';
 import Button from '../../components/common/Button';
 import Loader from '../../components/common/Loader';
+import ErrorState from '../../components/common/ErrorState';
 import { useFetch } from '../../hooks/useFetch';
 import { teamService } from '../../services/teamService';
 
@@ -26,7 +27,7 @@ export default function ManageVacancies() {
   };
 
   if (loading) return <MainLayout><Loader /></MainLayout>;
-  if (error || !team) return <MainLayout><p className="error-text">Unable to load this team.</p></MainLayout>;
+  if (error || !team) return <MainLayout><ErrorState message="Unable to load this team." onRetry={refetch} /></MainLayout>;
 
   const vacancies = Math.max(0, team.maxMembers - (team.members?.length || 0));
   const recruiting = team.isRecruiting !== false;

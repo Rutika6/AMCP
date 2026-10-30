@@ -2,31 +2,10 @@ import React from 'react';
 
 export default function Modal({ isOpen, onClose, title, children }) {
   if (!isOpen) return null;
-
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.4)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="card"
-        style={{ minWidth: 320, maxWidth: 480 }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-          <h3 style={{ margin: 0 }}>{title}</h3>
-          <span style={{ cursor: 'pointer' }} onClick={onClose}>✕</span>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
+  return <div className="modal-backdrop" onMouseDown={onClose}>
+    <section className="modal-panel" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 18 }}><h2 style={{ margin: 0 }}>{title}</h2><button type="button" className="btn btn-secondary" onClick={onClose} aria-label="Close dialog">Close</button></div>
+      {children}
+    </section>
+  </div>;
 }

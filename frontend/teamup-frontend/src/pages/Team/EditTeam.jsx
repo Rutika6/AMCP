@@ -65,6 +65,7 @@ export default function EditTeam() {
             description: team.description,
             maxMembers: team.maxMembers,
             skillsNeeded: (team.skillsNeeded || []).join(', '),
+            isRecruiting: team.isRecruiting !== false,
           }}
           onSubmit={handleUpdate}
           submitLabel="Save Changes"

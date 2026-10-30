@@ -3,21 +3,28 @@ import JoinRequest from '../models/Request.js';
 
 // POST /teams
 export async function createTeam(req, res) {
-  const { name, description, maxMembers, skillsNeeded } = req.body;
+  const { name, description, maxMembers, skillsNeeded, isRecruiting } = req.body;
 
-  if (!name || !description || maxMembers === undefined) {
+  if (typeof name !== 'string' || !name.trim() || typeof description !== 'string' || !description.trim() || maxMembers === undefined) {
     return res.status(400).json({ message: 'Name, description and maxMembers are required' });
   }
   const capacity = Number(maxMembers);
   if (!Number.isInteger(capacity) || capacity < 1) {
     return res.status(400).json({ message: 'Maximum members must be a whole number of at least 1' });
   }
+  if (skillsNeeded !== undefined && !Array.isArray(skillsNeeded)) {
+    return res.status(400).json({ message: 'Skills needed must be a list' });
+  }
+  if (isRecruiting !== undefined && typeof isRecruiting !== 'boolean') {
+    return res.status(400).json({ message: 'Recruiting status must be true or false' });
+  }
 
   const team = await Team.create({
-    name,
-    description,
+    name: name.trim(),
+    description: description.trim(),
     maxMembers: capacity,
     skillsNeeded: skillsNeeded || [],
+    isRecruiting: isRecruiting !== false,
     ownerId: req.user._id,
     members: [req.user._id],
   });
@@ -92,9 +99,18 @@ export async function deleteTeam(req, res) {
 
 // GET /teams/:teamId
 export async function getTeamById(req, res) {
-  const team = await Team.findById(req.params.teamId);
+  const team = await Team.findById(req.params.teamId)
+    .populate('members', 'name email skills bio githubUrl portfolioUrl')
+    .populate('ownerId', 'name');
   if (!team) return res.status(404).json({ message: 'Team not found' });
-  res.json(team.toJSON());
+  const data = team.toJSON();
+  data.ownerName = team.ownerId?.name || '';
+  data.ownerId = team.ownerId?._id || data.ownerId;
+  data.isMember = team.members.some((member) => String(member._id) === String(req.user._id));
+  if (data.isMember) data.currentUserRole = String(data.ownerId) === String(req.user._id) ? 'Owner' : 'Member';
+  const application = await JoinRequest.findOne({ teamId: team._id, applicantId: req.user._id }).sort({ createdAt: -1 });
+  data.myApplicationStatus = application?.status || null;
+  res.json(data);
 }
 
 // GET /teams/:teamId/members
@@ -142,23 +158,52 @@ export async function removeTeamMember(req, res) {
 export async function getMyTeams(req, res) {
   const teams = await Team.find({
     $or: [{ ownerId: req.user._id }, { members: req.user._id }],
-  }).sort({ createdAt: -1 });
+  }).populate('ownerId', 'name').sort({ createdAt: -1 });
 
-  res.json(teams.map((t) => t.toJSON()));
+  res.json(teams.map((team) => {
+    const data = team.toJSON();
+    data.ownerName = team.ownerId?.name || '';
+    data.ownerId = team.ownerId?._id || data.ownerId;
+    data.isMember = true;
+    data.currentUserRole = String(data.ownerId) === String(req.user._id) ? 'Owner' : 'Member';
+    return data;
+  }));
 }
 
 // GET /teams/search?keyword=&skill=
 export async function searchTeams(req, res) {
-  const { keyword, skill } = req.query;
+  const { keyword, skill, recruiting, hasCapacity, minMembers, maxMembers, sort = 'newest' } = req.query;
   const filter = {};
 
   if (keyword) {
-    filter.name = { $regex: keyword, $options: 'i' };
+    const escaped = String(keyword).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    filter.name = { $regex: escaped, $options: 'i' };
   }
   if (skill) {
-    filter.skillsNeeded = { $regex: skill, $options: 'i' };
+    const escaped = String(skill).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    filter.skillsNeeded = { $regex: escaped, $options: 'i' };
   }
-
-  const teams = await Team.find(filter).sort({ createdAt: -1 });
-  res.json(teams.map((t) => t.toJSON()));
+  if (recruiting === 'true') filter.isRecruiting = true;
+  if (recruiting === 'false') filter.isRecruiting = false;
+  const ordering = sort === 'name' ? { name: 1 } : sort === 'oldest' ? { createdAt: 1 } : { createdAt: -1 };
+  let teams = await Team.find(filter).populate('ownerId', 'name').sort(ordering);
+  if (hasCapacity === 'true') teams = teams.filter((team) => team.members.length < team.maxMembers);
+  if (Number.isFinite(Number(minMembers)) && minMembers !== '') teams = teams.filter((team) => team.members.length >= Number(minMembers));
+  if (Number.isFinite(Number(maxMembers)) && maxMembers !== '') teams = teams.filter((team) => team.members.length <= Number(maxMembers));
+  const teamIds = teams.map((team) => team._id);
+  const applications = await JoinRequest.find({ teamId: { $in: teamIds }, applicantId: req.user._id }).sort({ createdAt: -1 });
+  const statusByTeam = new Map();
+  for (const application of applications) {
+    const key = String(application.teamId);
+    if (!statusByTeam.has(key)) statusByTeam.set(key, application.status);
+  }
+  res.json(teams.map((team) => {
+    const data = team.toJSON();
+    data.ownerName = team.ownerId?.name || '';
+    data.ownerId = team.ownerId?._id || data.ownerId;
+    data.isMember = team.members.some((memberId) => String(memberId) === String(req.user._id));
+    if (data.isMember) data.currentUserRole = String(data.ownerId) === String(req.user._id) ? 'Owner' : 'Member';
+    data.myApplicationStatus = statusByTeam.get(String(team._id)) || null;
+    return data;
+  }));
 }
